@@ -8,8 +8,11 @@ A row of underscores represents the floor of the grid. For a block at position
    underscores of length `2 * cols` with `rows` spaces of indentation on the
    bottom line.
 2. The block sits across the two rows that border the `1` in the bitmap:
-   - The "rising" edge uses `"/"` followed by three backslashes.
-   - The "falling" edge uses a backslash followed by three forward slashes.
+   - The "rising" edge uses `"/"` followed by ``SLASH_RUN`` backslashes.
+   - The "falling" edge uses a backslash followed by ``SLASH_RUN`` forward
+     slashes.
+   ``SLASH_RUN`` is currently ``3`` and shared by both the renderer and the
+   validator.
 3. Underscores fill the remaining space so that every line has the same width.
 
 The approach avoids lookup tables by calculating offsets and padding based

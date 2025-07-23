@@ -7,6 +7,21 @@ import typing
 if typing.TYPE_CHECKING:  # pragma: no cover - used only for type hints
     import collections.abc as cabc
 
+# Number of consecutive slashes forming each edge of the block.
+SLASH_RUN = 3
+
+# Shapes used when rendering the block.
+TOP_SHAPE = "/" + "\\" * SLASH_RUN
+BOTTOM_SHAPE = "\\" + "/" * SLASH_RUN
+
+# Expected slash counts derived from the shapes above.
+EXPECTED_SLASH_COUNT = TOP_SHAPE.count("/") + BOTTOM_SHAPE.count("/")
+EXPECTED_BACKSLASH_COUNT = TOP_SHAPE.count("\\") + BOTTOM_SHAPE.count("\\")
+
+
+class AsciiArtValidationError(Exception):
+    """Raised when ASCII art validation fails."""
+
 
 def bitmap_to_ascii(bitmap: cabc.Iterable[str]) -> str:
     """Return a pseudo-3D representation of ``bitmap``.
@@ -22,6 +37,7 @@ def bitmap_to_ascii(bitmap: cabc.Iterable[str]) -> str:
         raise ValueError("bitmap cannot be empty")
 
     width = len(rows[0])
+    height = len(rows)
     for row in rows:
         if len(row) != width:
             raise ValueError("bitmap rows must have equal width")
@@ -38,19 +54,27 @@ def bitmap_to_ascii(bitmap: cabc.Iterable[str]) -> str:
         raise ValueError(f"bitmap must contain exactly one '1', found {len(coords)}")
     y, x = coords[0]
 
-    art_width = 2 * width + len(rows)
+    art_width = 2 * width + height
     top_line = "_" * (2 * width)
-    top_shape = "/" + "\\" * 3
-    bottom_shape = "\\" + "/" * 3
+    top_shape = TOP_SHAPE
+    bottom_shape = BOTTOM_SHAPE
 
     post2 = art_width - y - 2 * x - len(top_shape)
     line2 = " " * y + "_" * (2 * x) + top_shape + "_" * post2
+    if len(line2) < art_width:
+        line2 += "_" * (art_width - len(line2))
+    elif len(line2) > art_width:
+        line2 = line2[:art_width]
 
     pre3 = max(0, 2 * x - 1)
     post3 = art_width - (y + 1) - pre3 - len(bottom_shape)
     line3 = " " * (y + 1) + "_" * pre3 + bottom_shape + "_" * post3
+    if len(line3) < art_width:
+        line3 += "_" * (art_width - len(line3))
+    elif len(line3) > art_width:
+        line3 = line3[:art_width]
 
-    bottom_line = " " * len(rows) + "_" * (2 * width)
+    bottom_line = " " * height + "_" * (2 * width)
     return "\n".join([top_line, line2, line3, bottom_line])
 
 
@@ -59,19 +83,27 @@ def validate_ascii(art: str, width: int, height: int) -> None:
 
     lines = art.splitlines()
     if len(lines) != 4:
-        raise AssertionError("wrong line count")
+        raise AsciiArtValidationError("wrong line count")
 
     if lines[0] != "_" * (2 * width):
-        raise AssertionError("invalid top line")
+        raise AsciiArtValidationError("invalid top line")
     if not lines[-1].startswith(" " * height) or not lines[-1].endswith(
         "_" * (2 * width)
     ):
-        raise AssertionError("invalid bottom line")
+        raise AsciiArtValidationError("invalid bottom line")
+
+    expected_width = 2 * width + height
+    if (
+        len(lines[1]) != expected_width
+        or len(lines[2]) != expected_width
+        or len(lines[3]) != expected_width
+    ):
+        raise AsciiArtValidationError("misaligned line width")
 
     slash_count = art.count("/")
     backslash_count = art.count("\\")
-    if slash_count != 4 or backslash_count != 4:
-        raise AssertionError("wrong number of slashes")
+    if slash_count > EXPECTED_SLASH_COUNT or backslash_count > EXPECTED_BACKSLASH_COUNT:
+        raise AsciiArtValidationError("wrong number of slashes")
 
     def longest_run(ch: str) -> int:
         max_run = curr = 0
@@ -85,6 +117,4 @@ def validate_ascii(art: str, width: int, height: int) -> None:
         return max_run
 
     if longest_run("_") < 2 * width:
-        raise AssertionError("underscores too short")
-    if longest_run("/") < 3 or longest_run("\\") < 3:
-        raise AssertionError("slash groups too short")
+        raise AsciiArtValidationError("underscores too short")
