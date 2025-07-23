@@ -1,21 +1,28 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 import pytest
 from hypothesis import given
 from hypothesis import strategies as st
 
 from bbs_font.ascii_art import bitmap_to_ascii, validate_ascii
 
+DATA_DIR = Path(__file__).parent / "data"
+
 
 @pytest.mark.parametrize(
-    "bitmap",
+    "input_file,expected_file",
     [
-        ["0000", "0100", "0000"],
-        ["0000", "0010", "0000"],
+        ("example1_input.txt", "example1_output.txt"),
+        ("example2_input.txt", "example2_output.txt"),
     ],
 )
-def test_examples(bitmap: list[str]) -> None:
+def test_examples(input_file: str, expected_file: str) -> None:
+    bitmap = (DATA_DIR / input_file).read_text().splitlines()
+    expected = (DATA_DIR / expected_file).read_text().rstrip("\n")
     art = bitmap_to_ascii(bitmap)
+    assert art == expected
     validate_ascii(art, len(bitmap[0]), len(bitmap))
 
 
