@@ -19,6 +19,19 @@ def test_examples(bitmap: list[str]) -> None:
     validate_ascii(art, len(bitmap[0]), len(bitmap))
 
 
+@pytest.mark.parametrize(
+    "bitmap",
+    [
+        ["1", "0"],
+        ["10"],
+        ["01"],
+    ],
+)
+def test_edge_cases(bitmap: list[str]) -> None:
+    art = bitmap_to_ascii(bitmap)
+    validate_ascii(art, len(bitmap[0]), len(bitmap))
+
+
 @st.composite
 def random_bitmap(draw: st.DrawFn) -> list[str]:
     height = draw(st.integers(min_value=2, max_value=6))

@@ -3,10 +3,13 @@
 from __future__ import annotations
 
 import re
-from collections.abc import Iterable
+import typing
+
+if typing.TYPE_CHECKING:  # pragma: no cover - used only for type hints
+    import collections.abc as cabc
 
 
-def bitmap_to_ascii(bitmap: Iterable[str]) -> str:
+def bitmap_to_ascii(bitmap: cabc.Iterable[str]) -> str:
     """Return a pseudo-3D representation of ``bitmap``.
 
     The bitmap must contain exactly one ``"1"``. Each row must be the same
@@ -24,9 +27,15 @@ def bitmap_to_ascii(bitmap: Iterable[str]) -> str:
         if len(row) != width:
             raise ValueError("bitmap rows must have equal width")
 
-    coords = [(r, row.index("1")) for r, row in enumerate(rows) if "1" in row]
+    coords: list[tuple[int, int]] = []
+    for r, row in enumerate(rows):
+        for c, char in enumerate(row):
+            if char == "1":
+                coords.append((r, c))
+                break
+
     if len(coords) != 1:
-        raise ValueError("bitmap must contain exactly one '1'")
+        raise ValueError(f"bitmap must contain exactly one '1', found {len(coords)}")
     y, x = coords[0]
 
     art_width = 2 * width + len(rows)
