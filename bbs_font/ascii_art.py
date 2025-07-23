@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import re
 import typing
 
 if typing.TYPE_CHECKING:  # pragma: no cover - used only for type hints
@@ -29,10 +28,11 @@ def bitmap_to_ascii(bitmap: cabc.Iterable[str]) -> str:
 
     coords: list[tuple[int, int]] = []
     for r, row in enumerate(rows):
-        for c, char in enumerate(row):
-            if char == "1":
-                coords.append((r, c))
-                break
+        count = row.count("1")
+        if count > 1:
+            raise ValueError(f"bitmap row {r} contains multiple '1's")
+        if count == 1:
+            coords.append((r, row.index("1")))
 
     if len(coords) != 1:
         raise ValueError(f"bitmap must contain exactly one '1', found {len(coords)}")
@@ -43,21 +43,12 @@ def bitmap_to_ascii(bitmap: cabc.Iterable[str]) -> str:
     top_shape = "/" + "\\" * 3
     bottom_shape = "\\" + "/" * 3
 
-    line2_pre = "_" * (2 * x)
-    line2 = (
-        " " * y
-        + line2_pre
-        + top_shape
-        + "_" * (art_width - len(" " * y) - len(line2_pre) - len(top_shape))
-    )
+    post2 = art_width - y - 2 * x - len(top_shape)
+    line2 = " " * y + "_" * (2 * x) + top_shape + "_" * post2
 
-    line3_pre = "_" * max(0, 2 * x - 1)
-    line3 = (
-        " " * (y + 1)
-        + line3_pre
-        + bottom_shape
-        + "_" * (art_width - len(" " * (y + 1)) - len(line3_pre) - len(bottom_shape))
-    )
+    pre3 = max(0, 2 * x - 1)
+    post3 = art_width - (y + 1) - pre3 - len(bottom_shape)
+    line3 = " " * (y + 1) + "_" * pre3 + bottom_shape + "_" * post3
 
     bottom_line = " " * len(rows) + "_" * (2 * width)
     return "\n".join([top_line, line2, line3, bottom_line])
@@ -83,8 +74,15 @@ def validate_ascii(art: str, width: int, height: int) -> None:
         raise AssertionError("wrong number of slashes")
 
     def longest_run(ch: str) -> int:
-        runs = [len(m.group(0)) for m in re.finditer(re.escape(ch) + "+", art)]
-        return max(runs) if runs else 0
+        max_run = curr = 0
+        for c in art:
+            if c == ch:
+                curr += 1
+                if curr > max_run:
+                    max_run = curr
+            else:
+                curr = 0
+        return max_run
 
     if longest_run("_") < 2 * width:
         raise AssertionError("underscores too short")
