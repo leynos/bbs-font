@@ -4,9 +4,10 @@ The algorithm interprets the bitmap as a flat grid with a single raised block.
 A row of underscores represents the floor of the grid. For a block at position
 `(x, y)` (row `y`, column `x`):
 
-1. The output width is `2 * cols + rows`. The top and bottom lines are
-   underscores of length `2 * cols` with `rows` spaces of indentation on the
-   bottom line.
+1. The output width is at least `2 * cols + rows`. If the block sits near the
+   boundary, the width expands to fit the full shapes on the second and third
+   lines. The top line is `2 * cols` underscores. The bottom line uses `rows`
+   leading spaces and pads underscores to the computed width.
 2. The block sits across the two rows that border the `1` in the bitmap:
    - The "rising" edge uses `"/"` followed by ``SLASH_RUN`` backslashes.
    - The "falling" edge uses a backslash followed by ``SLASH_RUN`` forward

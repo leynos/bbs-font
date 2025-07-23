@@ -23,7 +23,7 @@ def test_examples(input_file: str, expected_file: str) -> None:
     expected = (DATA_DIR / expected_file).read_text().rstrip("\n")
     art = bitmap_to_ascii(bitmap)
     assert art == expected
-    validate_ascii(art, len(bitmap[0]), len(bitmap))
+    validate_ascii(art, bitmap)
 
 
 @pytest.mark.parametrize(
@@ -36,7 +36,7 @@ def test_examples(input_file: str, expected_file: str) -> None:
 )
 def test_edge_cases(bitmap: list[str]) -> None:
     art = bitmap_to_ascii(bitmap)
-    validate_ascii(art, len(bitmap[0]), len(bitmap))
+    validate_ascii(art, bitmap)
 
 
 @st.composite
@@ -57,4 +57,4 @@ def random_bitmap(draw: st.DrawFn) -> list[str]:
 @given(random_bitmap())
 def test_random_bitmaps(bitmap: list[str]) -> None:
     art = bitmap_to_ascii(bitmap)
-    validate_ascii(art, len(bitmap[0]), len(bitmap))
+    validate_ascii(art, bitmap)
