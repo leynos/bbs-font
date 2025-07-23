@@ -13,6 +13,7 @@ dev = [
     "ruff",
     "pyright",
     "pytest-timeout",
+    "hypothesis",
 ]
 
 [tool.pyright]
@@ -73,7 +74,7 @@ seaborn = "sns"
 scipy = "sp"
 "collections.abc" = "cabc"
 datetime = "dt"
-unittest.mock = "mock"
+"unittest.mock" = "mock"
 
 [tool.pytest.ini_options]
 # Ensure asyncio fixtures create a new event loop for each test
