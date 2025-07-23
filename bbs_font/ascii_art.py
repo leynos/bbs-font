@@ -10,13 +10,14 @@ if typing.TYPE_CHECKING:  # pragma: no cover - used only for type hints
 # Number of consecutive slashes forming each edge of the block.
 SLASH_RUN = 3
 
-# Shapes used when rendering the block.
-TOP_SHAPE = "/" + "\\" * SLASH_RUN
-BOTTOM_SHAPE = "\\" + "/" * SLASH_RUN
 
-# Expected slash counts derived from the shapes above.
-EXPECTED_SLASH_COUNT = TOP_SHAPE.count("/") + BOTTOM_SHAPE.count("/")
-EXPECTED_BACKSLASH_COUNT = TOP_SHAPE.count("\\") + BOTTOM_SHAPE.count("\\")
+def _make_shapes(count: int) -> tuple[str, str]:
+    """Return the rising and falling edge shapes for ``count`` blocks."""
+
+    run = 2 * count + 1
+    top = "/" + "\\" * run
+    bottom = "\\" + "/" * run
+    return top, bottom
 
 
 class AsciiArtValidationError(Exception):
@@ -44,35 +45,72 @@ def bitmap_to_ascii(bitmap: cabc.Iterable[str]) -> str:
 
     coords: list[tuple[int, int]] = []
     for r, row in enumerate(rows):
-        count = row.count("1")
-        if count > 1:
-            raise ValueError(f"bitmap row {r} contains multiple '1's")
-        if count == 1:
-            coords.append((r, row.index("1")))
+        for c, ch in enumerate(row):
+            if ch == "1":
+                coords.append((r, c))
 
-    if len(coords) != 1:
-        raise ValueError(f"bitmap must contain exactly one '1', found {len(coords)}")
-    y, x = coords[0]
+    if not coords or len(coords) > 2:
+        raise ValueError(f"bitmap must contain one or two '1's, found {len(coords)}")
+
+    if len(coords) == 2:
+        (y0, x0), (y1, x1) = coords
+        if (
+            abs(y0 - y1) <= 1
+            and abs(x0 - x1) <= 1
+            and not (y0 == y1 and abs(x0 - x1) == 1)
+        ):
+            raise ValueError("pixels may only touch horizontally")
+
+    coords.sort()
+
+    if len(coords) == 1:
+        groups = [(coords[0][0], [coords[0][1]])]
+    else:
+        (y0, x0), (y1, x1) = coords
+        if y0 == y1 and abs(x0 - x1) == 1:
+            groups = [(y0, sorted([x0, x1]))]
+        else:
+            groups = [(y0, [x0]), (y1, [x1])]
+
+    min_y = min(y for y, _ in coords)
+    prefix2 = min_y
+    prefix3 = min_y + 1
 
     base_width = 2 * width + height
-    art_width = max(
-        base_width,
-        y + 2 * x + len(TOP_SHAPE),
-        (y + 1) + max(0, 2 * x - 1) + len(BOTTOM_SHAPE),
-    )
+    art_width = base_width
+    for y, xs in groups:
+        xs.sort()
+        n = len(xs)
+        top_shape, bottom_shape = _make_shapes(n)
+        start_top = prefix2 + (y - min_y) + 2 * xs[0]
+        start_bottom = prefix3 + (y - min_y) + max(0, 2 * xs[0] - 1)
+        art_width = max(
+            art_width,
+            start_top + len(top_shape),
+            start_bottom + len(bottom_shape),
+        )
+
+    line2_chars = ["_"] * art_width
+    line3_chars = ["_"] * art_width
+    for i in range(prefix2):
+        line2_chars[i] = " "
+    for i in range(prefix3):
+        line3_chars[i] = " "
+
+    for y, xs in groups:
+        xs.sort()
+        n = len(xs)
+        top_shape, bottom_shape = _make_shapes(n)
+        start_top = prefix2 + (y - min_y) + 2 * xs[0]
+        start_bottom = prefix3 + (y - min_y) + max(0, 2 * xs[0] - 1)
+        for idx, ch in enumerate(top_shape):
+            line2_chars[start_top + idx] = ch
+        for idx, ch in enumerate(bottom_shape):
+            line3_chars[start_bottom + idx] = ch
+
     top_line = "_" * (2 * width)
-    top_shape = TOP_SHAPE
-    bottom_shape = BOTTOM_SHAPE
-
-    post2 = art_width - y - 2 * x - len(top_shape)
-    line2 = f"{' ' * y}{'_' * (2 * x)}{top_shape}{'_' * max(0, post2)}"
-    line2 = line2[:art_width].ljust(art_width, "_")
-
-    pre3 = max(0, 2 * x - 1)
-    post3 = art_width - (y + 1) - pre3 - len(bottom_shape)
-    line3 = f"{' ' * (y + 1)}{'_' * pre3}{bottom_shape}{'_' * max(0, post3)}"
-    line3 = line3[:art_width].ljust(art_width, "_")
-
+    line2 = "".join(line2_chars)
+    line3 = "".join(line3_chars)
     bottom_line = " " * height + "_" * (art_width - height)
     return "\n".join([top_line, line2, line3, bottom_line])
 
@@ -91,24 +129,28 @@ def validate_ascii(art: str, bitmap: cabc.Iterable[str]) -> None:
 
     coords: list[tuple[int, int]] = []
     for r, row in enumerate(rows):
-        count = row.count("1")
-        if count > 1:
-            raise AsciiArtValidationError(f"bitmap row {r} contains multiple '1's")
-        if count == 1:
-            coords.append((r, row.index("1")))
+        for c, ch in enumerate(row):
+            if ch == "1":
+                coords.append((r, c))
 
-    if len(coords) != 1:
+    if not coords or len(coords) > 2:
         raise AsciiArtValidationError(
-            f"bitmap must contain exactly one '1', found {len(coords)}"
+            f"bitmap must contain one or two '1's, found {len(coords)}"
         )
-    y, x = coords[0]
 
-    base_width = 2 * width + height
-    expected_width = max(
-        base_width,
-        y + 2 * x + len(TOP_SHAPE),
-        (y + 1) + max(0, 2 * x - 1) + len(BOTTOM_SHAPE),
-    )
+    if len(coords) == 2:
+        (y0, x0), (y1, x1) = coords
+        if (
+            abs(y0 - y1) <= 1
+            and abs(x0 - x1) <= 1
+            and not (y0 == y1 and abs(x0 - x1) == 1)
+        ):
+            raise AsciiArtValidationError("pixels may only touch horizontally")
+
+    coords.sort()
+
+    expected_art = bitmap_to_ascii(bitmap)
+    expected_width = len(expected_art.splitlines()[1])
 
     lines = art.splitlines()
     if len(lines) != 4:
@@ -130,9 +172,11 @@ def validate_ascii(art: str, bitmap: cabc.Iterable[str]) -> None:
 
     slash_count = art.count("/")
     backslash_count = art.count("\\")
+    expected_slash_count = expected_art.count("/")
+    expected_backslash_count = expected_art.count("\\")
     if (
-        slash_count != EXPECTED_SLASH_COUNT
-        or backslash_count != EXPECTED_BACKSLASH_COUNT
+        slash_count != expected_slash_count
+        or backslash_count != expected_backslash_count
     ):
         raise AsciiArtValidationError("wrong number of slashes")
 

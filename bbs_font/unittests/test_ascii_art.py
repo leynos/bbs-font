@@ -16,6 +16,7 @@ DATA_DIR = Path(__file__).parent / "data"
     [
         ("example1_input.txt", "example1_output.txt"),
         ("example2_input.txt", "example2_output.txt"),
+        ("example3_input.txt", "example3_output.txt"),
     ],
 )
 def test_examples(input_file: str, expected_file: str) -> None:
@@ -43,13 +44,31 @@ def test_edge_cases(bitmap: list[str]) -> None:
 def random_bitmap(draw: st.DrawFn) -> list[str]:
     height = draw(st.integers(min_value=2, max_value=6))
     width = draw(st.integers(min_value=1, max_value=6))
-    row = draw(st.integers(min_value=0, max_value=height - 1))
-    col = draw(st.integers(min_value=0, max_value=width - 1))
+
+    positions = [(r, c) for r in range(height) for c in range(width)]
+    first = draw(st.sampled_from(positions))
+
+    coords = [first]
+    if draw(st.booleans()):
+        possible = [
+            (r, c)
+            for r, c in positions
+            if (r, c) != first
+            and not (
+                abs(r - first[0]) <= 1
+                and abs(c - first[1]) <= 1
+                and not (r == first[0] and abs(c - first[1]) == 1)
+            )
+        ]
+        if possible:
+            coords.append(draw(st.sampled_from(possible)))
+
     grid = []
     for r in range(height):
         cells = ["0"] * width
-        if r == row:
-            cells[col] = "1"
+        for yr, xc in coords:
+            if yr == r:
+                cells[xc] = "1"
         grid.append("".join(cells))
     return grid
 
