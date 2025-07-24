@@ -6,20 +6,22 @@ floor and ceiling. Blocks are drawn across the middle two rows. A row of
 underscores represents the floor of the grid. For a block at position `(x, y)`
 (row `y`, column `x`):
 
-1. The output width is at least `2 * cols + rows`. If any block sits near the
-   boundary, the width expands to fit the full shapes on the second and third
-   lines. The top line is `2 * cols` underscores. The bottom line uses `rows`
-   leading spaces and pads underscores to the computed width.
-2. Each block sits across the two rows that border its ``1`` in the bitmap.
-   Blocks in the same row may touch horizontally. When multiple blocks touch,
-   their edges merge into a single shape.  The number of slashes grows by two
-   for each additional touching block:
+1. The output width is at least `2 * cols + rows`. If a block sits near the
+   boundary, the width expands so the second and third lines show the full
+   shapes. The top line is `2 * cols` underscores. The bottom line uses
+   `rows` leading spaces and pads underscores to the computed width.
 
-   - The rising edge uses ``"/"`` followed by ``2 * n + 1`` backslashes where
-     ``n`` is the number of horizontally touching blocks in that group.
-   - The falling edge uses a backslash followed by ``2 * n + 1`` forward
+1. Each block sits across the two rows that border its `1` in the bitmap.
+   Blocks in the same row may touch horizontally. When blocks touch, edges
+   merge into a single shape. The number of slashes grows by two for each
+   additional touching block:
+
+   - The rising edge uses `"/"` followed by `2 * n + 1` backslashes where
+     `n` is the number of horizontally touching blocks in that group.
+   - The falling edge uses a backslash followed by `2 * n + 1` forward
      slashes.
-3. Underscores fill the remaining space so that every line has the same width.
+
+1. Underscores fill the remaining space so that every line has the same width.
 
 The approach avoids lookup tables by calculating offsets and padding based
 solely on the bitmap dimensions and block coordinates. Groups are rendered from

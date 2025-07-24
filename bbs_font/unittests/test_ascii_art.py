@@ -7,6 +7,7 @@ from hypothesis import given
 from hypothesis import strategies as st
 
 from bbs_font.ascii_art import bitmap_to_ascii, validate_ascii
+from bbs_font.parser import parse_and_validate_bitmap
 
 DATA_DIR = Path(__file__).parent / "data"
 
@@ -94,3 +95,18 @@ def random_bitmap(draw: st.DrawFn) -> list[str]:
 def test_random_bitmaps(bitmap: list[str]) -> None:
     art = bitmap_to_ascii(bitmap)
     validate_ascii(art, bitmap)
+
+
+def test_invalid_characters() -> None:
+    with pytest.raises(ValueError):
+        parse_and_validate_bitmap(["10A"])
+
+
+def test_empty_row() -> None:
+    with pytest.raises(ValueError):
+        parse_and_validate_bitmap([""])
+
+
+def test_vertical_adjacency_error() -> None:
+    with pytest.raises(ValueError):
+        parse_and_validate_bitmap(["10", "10"])

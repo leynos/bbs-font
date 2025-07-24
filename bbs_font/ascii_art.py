@@ -14,7 +14,13 @@ SLASH_RUN = 3
 
 
 def _make_shapes(count: int) -> tuple[str, str]:
-    """Return the rising and falling edge shapes for ``count`` blocks."""
+    """Return the rising and falling edge shapes for ``count`` blocks.
+
+    Examples
+    --------
+    ``count=1`` yields ``("/\\\\\\", "\\/////")``.
+    ``count=2`` yields ``("/\\\\\\\\\\", "\\///////")``.
+    """
 
     run = 2 * count + 1
     return "/" + "\\" * run, "\\" + "/" * run
