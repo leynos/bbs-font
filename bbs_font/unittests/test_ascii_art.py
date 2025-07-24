@@ -50,25 +50,24 @@ def random_bitmap(draw: st.DrawFn) -> list[str]:
 
     coords = [first]
     if draw(st.booleans()):
-        possible = [
-            (r, c)
-            for r, c in positions
-            if (r, c) != first
-            and not (
-                abs(r - first[0]) <= 1
-                and abs(c - first[1]) <= 1
-                and not (r == first[0] and abs(c - first[1]) == 1)
-            )
-        ]
+        possible = []
+        for r, c in positions:
+            if (r, c) == first:
+                continue
+            vertically_adjacent = abs(r - first[0]) == 1 and c == first[1]
+            diagonally_adjacent = abs(r - first[0]) == 1 and abs(c - first[1]) == 1
+            if vertically_adjacent or diagonally_adjacent:
+                continue
+            possible.append((r, c))
         if possible:
             coords.append(draw(st.sampled_from(possible)))
 
     grid = []
-    for r in range(height):
+    for row in range(height):
         cells = ["0"] * width
-        for yr, xc in coords:
-            if yr == r:
-                cells[xc] = "1"
+        for y, x in coords:
+            if y == row:
+                cells[x] = "1"
         grid.append("".join(cells))
     return grid
 

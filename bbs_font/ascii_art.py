@@ -12,7 +12,16 @@ SLASH_RUN = 3
 
 
 def _make_shapes(count: int) -> tuple[str, str]:
-    """Return the rising and falling edge shapes for ``count`` blocks."""
+    """Return the rising and falling edge shapes for ``count`` blocks.
+
+    Args:
+        count: Number of horizontally adjacent blocks.
+
+    Returns:
+        A tuple ``(top, bottom)`` where ``top`` is the rising edge and
+        ``bottom`` is the falling edge. Each edge consists of ``2 * count + 1``
+        slashes plus a leading slash of the opposite type.
+    """
 
     run = 2 * count + 1
     top = "/" + "\\" * run
@@ -20,17 +29,55 @@ def _make_shapes(count: int) -> tuple[str, str]:
     return top, bottom
 
 
+def _place_shape(line: list[str], start: int, shape: str) -> None:
+    """Place ``shape`` into ``line`` starting at ``start``."""
+
+    for idx, ch in enumerate(shape):
+        line[start + idx] = ch
+
+
 class AsciiArtValidationError(Exception):
     """Raised when ASCII art validation fails."""
+
+
+def _validate_pixel_adjacency(coords: list[tuple[int, int]]) -> None:
+    """Ensure two pixels, if present, only touch horizontally."""
+
+    if len(coords) != 2:
+        return
+    (y0, x0), (y1, x1) = coords
+    vertically_adjacent = abs(y0 - y1) == 1 and x0 == x1
+    diagonally_adjacent = abs(y0 - y1) == 1 and abs(x0 - x1) == 1
+    if vertically_adjacent or diagonally_adjacent:
+        raise ValueError("pixels may only touch horizontally")
+
+
+def _build_groups(
+    coords: list[tuple[int, int]],
+) -> tuple[list[tuple[int, list[int]]], int]:
+    """Return groups of horizontally touching pixels and the minimum row."""
+
+    coords.sort()
+    if len(coords) == 1:
+        groups = [(coords[0][0], [coords[0][1]])]
+    else:
+        (y0, x0), (y1, x1) = coords
+        if y0 == y1 and abs(x0 - x1) == 1:
+            groups = [(y0, sorted([x0, x1]))]
+        else:
+            groups = [(y0, [x0]), (y1, [x1])]
+    min_y = min(y for y, _ in coords)
+    return groups, min_y
 
 
 def bitmap_to_ascii(bitmap: cabc.Iterable[str]) -> str:
     """Return a pseudo-3D representation of ``bitmap``.
 
-    The bitmap must contain exactly one ``"1"``. Each row must be the same
+    The bitmap may contain one or two ``"1"`` pixels. Each row must be the same
     length. The output consists of ``height + 1`` lines. The top and bottom
-    edges are a run of underscores. The raised block is drawn across the two
-    rows that border its ``1``.
+    edges are a run of underscores. Blocks are drawn across the two rows that
+    border each ``"1"``. When two pixels are present they may only touch
+    horizontally.
     """
 
     rows = list(bitmap)
@@ -52,29 +99,11 @@ def bitmap_to_ascii(bitmap: cabc.Iterable[str]) -> str:
     if not coords or len(coords) > 2:
         raise ValueError(f"bitmap must contain one or two '1's, found {len(coords)}")
 
-    if len(coords) == 2:
-        (y0, x0), (y1, x1) = coords
-        if (
-            abs(y0 - y1) <= 1
-            and abs(x0 - x1) <= 1
-            and not (y0 == y1 and abs(x0 - x1) == 1)
-        ):
-            raise ValueError("pixels may only touch horizontally")
+    _validate_pixel_adjacency(coords)
 
-    coords.sort()
-
-    if len(coords) == 1:
-        groups = [(coords[0][0], [coords[0][1]])]
-    else:
-        (y0, x0), (y1, x1) = coords
-        if y0 == y1 and abs(x0 - x1) == 1:
-            groups = [(y0, sorted([x0, x1]))]
-        else:
-            groups = [(y0, [x0]), (y1, [x1])]
-
-    min_y = min(y for y, _ in coords)
-    prefix2 = min_y
-    prefix3 = min_y + 1
+    groups, min_y = _build_groups(coords)
+    top_row_offset = min_y
+    bottom_row_offset = min_y + 1
 
     base_width = 2 * width + height
     art_width = base_width
@@ -82,8 +111,8 @@ def bitmap_to_ascii(bitmap: cabc.Iterable[str]) -> str:
         xs.sort()
         n = len(xs)
         top_shape, bottom_shape = _make_shapes(n)
-        start_top = prefix2 + (y - min_y) + 2 * xs[0]
-        start_bottom = prefix3 + (y - min_y) + max(0, 2 * xs[0] - 1)
+        start_top = top_row_offset + (y - min_y) + 2 * xs[0]
+        start_bottom = bottom_row_offset + (y - min_y) + max(0, 2 * xs[0] - 1)
         art_width = max(
             art_width,
             start_top + len(top_shape),
@@ -92,21 +121,19 @@ def bitmap_to_ascii(bitmap: cabc.Iterable[str]) -> str:
 
     line2_chars = ["_"] * art_width
     line3_chars = ["_"] * art_width
-    for i in range(prefix2):
+    for i in range(top_row_offset):
         line2_chars[i] = " "
-    for i in range(prefix3):
+    for i in range(bottom_row_offset):
         line3_chars[i] = " "
 
     for y, xs in groups:
         xs.sort()
         n = len(xs)
         top_shape, bottom_shape = _make_shapes(n)
-        start_top = prefix2 + (y - min_y) + 2 * xs[0]
-        start_bottom = prefix3 + (y - min_y) + max(0, 2 * xs[0] - 1)
-        for idx, ch in enumerate(top_shape):
-            line2_chars[start_top + idx] = ch
-        for idx, ch in enumerate(bottom_shape):
-            line3_chars[start_bottom + idx] = ch
+        start_top = top_row_offset + (y - min_y) + 2 * xs[0]
+        start_bottom = bottom_row_offset + (y - min_y) + max(0, 2 * xs[0] - 1)
+        _place_shape(line2_chars, start_top, top_shape)
+        _place_shape(line3_chars, start_bottom, bottom_shape)
 
     top_line = "_" * (2 * width)
     line2 = "".join(line2_chars)
@@ -138,19 +165,36 @@ def validate_ascii(art: str, bitmap: cabc.Iterable[str]) -> None:
             f"bitmap must contain one or two '1's, found {len(coords)}"
         )
 
-    if len(coords) == 2:
-        (y0, x0), (y1, x1) = coords
-        if (
-            abs(y0 - y1) <= 1
-            and abs(x0 - x1) <= 1
-            and not (y0 == y1 and abs(x0 - x1) == 1)
-        ):
-            raise AsciiArtValidationError("pixels may only touch horizontally")
+    try:
+        _validate_pixel_adjacency(coords)
+    except ValueError as exc:  # pragma: no cover - never triggered in tests
+        raise AsciiArtValidationError(str(exc)) from exc
 
-    coords.sort()
+    groups, min_y = _build_groups(coords)
+    top_row_offset = min_y
+    bottom_row_offset = min_y + 1
 
-    expected_art = bitmap_to_ascii(bitmap)
-    expected_width = len(expected_art.splitlines()[1])
+    expected_width = 2 * width + height
+    line2 = ["_"] * expected_width
+    line3 = ["_"] * expected_width
+    for y, xs in groups:
+        xs.sort()
+        top_shape, bottom_shape = _make_shapes(len(xs))
+        start_top = top_row_offset + (y - min_y) + 2 * xs[0]
+        start_bottom = bottom_row_offset + (y - min_y) + max(0, 2 * xs[0] - 1)
+        expected_width = max(
+            expected_width,
+            start_top + len(top_shape),
+            start_bottom + len(bottom_shape),
+        )
+        if len(line2) < expected_width:
+            line2.extend("_" * (expected_width - len(line2)))
+            line3.extend("_" * (expected_width - len(line3)))
+        _place_shape(line2, start_top, top_shape)
+        _place_shape(line3, start_bottom, bottom_shape)
+
+    expected_slash_count = line2.count("/") + line3.count("/")
+    expected_backslash_count = line2.count("\\") + line3.count("\\")
 
     lines = art.splitlines()
     if len(lines) != 4:
@@ -172,8 +216,6 @@ def validate_ascii(art: str, bitmap: cabc.Iterable[str]) -> None:
 
     slash_count = art.count("/")
     backslash_count = art.count("\\")
-    expected_slash_count = expected_art.count("/")
-    expected_backslash_count = expected_art.count("\\")
     if (
         slash_count != expected_slash_count
         or backslash_count != expected_backslash_count

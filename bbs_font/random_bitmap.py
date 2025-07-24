@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import random
 
+from .ascii_art import _validate_pixel_adjacency
+
 
 def random_bitmap(width: int, height: int) -> list[str]:
     """Return a bitmap with one or two active pixels.
@@ -17,24 +19,23 @@ def random_bitmap(width: int, height: int) -> list[str]:
     coords = [first]
 
     if random.choice([True, False]):  # noqa: S311 - demo randomness
-        possible = [
-            (r, c)
-            for r, c in positions
-            if (r, c) != first
-            and not (
-                abs(r - first[0]) <= 1
-                and abs(c - first[1]) <= 1
-                and not (r == first[0] and abs(c - first[1]) == 1)
-            )
-        ]
+        possible = []
+        for pos in positions:
+            if pos == first:
+                continue
+            try:
+                _validate_pixel_adjacency([first, pos])
+            except ValueError:
+                continue
+            possible.append(pos)
         if possible:
             coords.append(random.choice(possible))  # noqa: S311 - demo randomness
 
     grid = []
-    for r in range(height):
+    for row in range(height):
         cells = ["0"] * width
-        for yr, xc in coords:
-            if yr == r:
-                cells[xc] = "1"
+        for y, x in coords:
+            if y == row:
+                cells[x] = "1"
         grid.append("".join(cells))
     return grid

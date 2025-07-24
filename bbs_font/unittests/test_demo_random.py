@@ -18,11 +18,9 @@ def test_random_bitmap_validity() -> None:
         ]
         if len(coords) == 2:
             (y0, x0), (y1, x1) = coords
-            assert not (
-                abs(y0 - y1) <= 1
-                and abs(x0 - x1) <= 1
-                and not (y0 == y1 and abs(x0 - x1) == 1)
-            )
+            vertically_adjacent = abs(y0 - y1) == 1 and x0 == x1
+            diagonally_adjacent = abs(y0 - y1) == 1 and abs(x0 - x1) == 1
+            assert not (vertically_adjacent or diagonally_adjacent)
 
         art = bitmap_to_ascii(bitmap)
         validate_ascii(art, bitmap)
