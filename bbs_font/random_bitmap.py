@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import random
 
-from .ascii_art import _validate_pixel_adjacency
+from .ascii_art import validate_pixel_adjacency
 
 
 def random_bitmap(width: int, height: int) -> list[str]:
@@ -24,7 +24,7 @@ def random_bitmap(width: int, height: int) -> list[str]:
             if pos == first:
                 continue
             try:
-                _validate_pixel_adjacency([first, pos])
+                validate_pixel_adjacency([first, pos])
             except ValueError:
                 continue
             possible.append(pos)

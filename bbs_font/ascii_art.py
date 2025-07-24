@@ -21,6 +21,12 @@ def _make_shapes(count: int) -> tuple[str, str]:
         A tuple ``(top, bottom)`` where ``top`` is the rising edge and
         ``bottom`` is the falling edge. Each edge consists of ``2 * count + 1``
         slashes plus a leading slash of the opposite type.
+
+    Examples:
+        >>> _make_shapes(1)
+        ('/\\\\\\', '\\///')
+        >>> _make_shapes(2)
+        ('/\\\\\\\\\\', '\\/////')
     """
 
     run = 2 * count + 1
@@ -80,11 +86,14 @@ def _assemble_lines(
 
     base_width = 2 * width + height
     art_width = base_width
+    placements: list[tuple[int, str, int, str]] = []
+
     for y, xs in groups:
-        xs.sort()
-        top_shape, bottom_shape = _make_shapes(len(xs))
-        start_top = top_row_offset + (y - min_y) + 2 * xs[0]
-        start_bottom = bottom_row_offset + (y - min_y) + max(0, 2 * xs[0] - 1)
+        xs_sorted = sorted(xs)
+        top_shape, bottom_shape = _make_shapes(len(xs_sorted))
+        start_top = top_row_offset + (y - min_y) + 2 * xs_sorted[0]
+        start_bottom = bottom_row_offset + (y - min_y) + max(0, 2 * xs_sorted[0] - 1)
+        placements.append((start_top, top_shape, start_bottom, bottom_shape))
         art_width = max(
             art_width,
             start_top + len(top_shape),
@@ -98,11 +107,7 @@ def _assemble_lines(
     for i in range(bottom_row_offset):
         line3_chars[i] = " "
 
-    for y, xs in groups:
-        xs.sort()
-        top_shape, bottom_shape = _make_shapes(len(xs))
-        start_top = top_row_offset + (y - min_y) + 2 * xs[0]
-        start_bottom = bottom_row_offset + (y - min_y) + max(0, 2 * xs[0] - 1)
+    for start_top, top_shape, start_bottom, bottom_shape in placements:
         _place_shape(line2_chars, start_top, top_shape)
         _place_shape(line3_chars, start_bottom, bottom_shape)
 
@@ -121,8 +126,12 @@ def _longest_run(text: str, ch: str) -> int:
     return run
 
 
-def _validate_pixel_adjacency(coords: list[tuple[int, int]]) -> None:
-    """Ensure two pixels, if present, only touch horizontally."""
+def validate_pixel_adjacency(coords: list[tuple[int, int]]) -> None:
+    """Ensure two pixels, if present, only touch horizontally.
+
+    Raises a ``ValueError`` if the pixels touch vertically or diagonally,
+    including their coordinates to aid debugging.
+    """
 
     if len(coords) != 2:
         return
@@ -130,7 +139,8 @@ def _validate_pixel_adjacency(coords: list[tuple[int, int]]) -> None:
     vertically_adjacent = abs(y0 - y1) == 1 and x0 == x1
     diagonally_adjacent = abs(y0 - y1) == 1 and abs(x0 - x1) == 1
     if vertically_adjacent or diagonally_adjacent:
-        raise ValueError("pixels may only touch horizontally")
+        msg = f"pixels may only touch horizontally: {(y0, x0)} and {(y1, x1)}"
+        raise ValueError(msg)
 
 
 def _build_groups(
@@ -138,16 +148,16 @@ def _build_groups(
 ) -> tuple[list[tuple[int, list[int]]], int]:
     """Return groups of horizontally touching pixels and the minimum row."""
 
-    coords.sort()
-    if len(coords) == 1:
-        groups = [(coords[0][0], [coords[0][1]])]
+    coords_sorted = sorted(coords)
+    if len(coords_sorted) == 1:
+        groups = [(coords_sorted[0][0], [coords_sorted[0][1]])]
     else:
-        (y0, x0), (y1, x1) = coords
+        (y0, x0), (y1, x1) = coords_sorted
         if y0 == y1 and abs(x0 - x1) == 1:
             groups = [(y0, sorted([x0, x1]))]
         else:
             groups = [(y0, [x0]), (y1, [x1])]
-    min_y = min(y for y, _ in coords)
+    min_y = min(y for y, _ in coords_sorted)
     return groups, min_y
 
 
@@ -161,7 +171,7 @@ def bitmap_to_ascii(bitmap: cabc.Iterable[str]) -> str:
     """
 
     width, height, coords = _parse_bitmap(bitmap)
-    _validate_pixel_adjacency(coords)
+    validate_pixel_adjacency(coords)
 
     groups, min_y = _build_groups(coords)
     top_row_offset = min_y
@@ -182,7 +192,7 @@ def validate_ascii(art: str, bitmap: cabc.Iterable[str]) -> None:
     width, height, coords = _parse_bitmap(bitmap, AsciiArtValidationError)
 
     try:
-        _validate_pixel_adjacency(coords)
+        validate_pixel_adjacency(coords)
     except ValueError as exc:  # pragma: no cover - should not happen in tests
         raise AsciiArtValidationError(str(exc)) from exc
 

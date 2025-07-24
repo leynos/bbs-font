@@ -40,6 +40,24 @@ def test_edge_cases(bitmap: list[str]) -> None:
     validate_ascii(art, bitmap)
 
 
+def test_two_horizontally_adjacent_blocks() -> None:
+    bitmap = [
+        "110",
+        "000",
+    ]
+    art = bitmap_to_ascii(bitmap)
+    validate_ascii(art, bitmap)
+
+
+def test_two_non_adjacent_blocks() -> None:
+    bitmap = [
+        "100",
+        "001",
+    ]
+    art = bitmap_to_ascii(bitmap)
+    validate_ascii(art, bitmap)
+
+
 @st.composite
 def random_bitmap(draw: st.DrawFn) -> list[str]:
     height = draw(st.integers(min_value=2, max_value=6))
