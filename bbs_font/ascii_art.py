@@ -42,6 +42,49 @@ def _place_shape(line: list[str], start: int, shape: str) -> None:
         line[start + idx] = ch
 
 
+def _calculate_art_width(
+    width: int,
+    height: int,
+    placements: list[tuple[int, str, int, str]],
+) -> int:
+    """Return the total width needed for ``placements``."""
+
+    art_width = 2 * width + height
+    for start_top, top_shape, start_bottom, bottom_shape in placements:
+        art_width = max(
+            art_width,
+            start_top + len(top_shape),
+            start_bottom + len(bottom_shape),
+        )
+    return art_width
+
+
+def _initialize_lines(
+    art_width: int, top_row_offset: int, bottom_row_offset: int
+) -> tuple[list[str], list[str]]:
+    """Return character arrays for both drawing rows."""
+
+    line2_chars = ["_"] * art_width
+    line3_chars = ["_"] * art_width
+    for i in range(top_row_offset):
+        line2_chars[i] = " "
+    for i in range(bottom_row_offset):
+        line3_chars[i] = " "
+    return line2_chars, line3_chars
+
+
+def _place_all_shapes(
+    line2_chars: list[str],
+    line3_chars: list[str],
+    placements: list[tuple[int, str, int, str]],
+) -> None:
+    """Render all shapes onto ``line2_chars`` and ``line3_chars``."""
+
+    for start_top, top_shape, start_bottom, bottom_shape in placements:
+        _place_shape(line2_chars, start_top, top_shape)
+        _place_shape(line3_chars, start_bottom, bottom_shape)
+
+
 class AsciiArtValidationError(Exception):
     """Raised when ASCII art validation fails."""
 
@@ -62,11 +105,12 @@ def _parse_bitmap(
         if len(row) != width:
             raise exc("bitmap rows must have equal width")
 
-    coords: list[tuple[int, int]] = []
-    for r, row in enumerate(rows):
-        for c, ch in enumerate(row):
-            if ch == "1":
-                coords.append((r, c))
+    coords = [
+        (r, c)
+        for r, row in enumerate(rows)
+        for c, ch in enumerate(row)
+        if ch == "1"
+    ]
 
     if not coords or len(coords) > 2:
         raise exc(f"bitmap must contain one or two '1's, found {len(coords)}")
@@ -84,32 +128,19 @@ def _assemble_lines(
 ) -> tuple[str, str, int]:
     """Build output lines and return them with the final width."""
 
-    base_width = 2 * width + height
-    art_width = base_width
     placements: list[tuple[int, str, int, str]] = []
-
     for y, xs in groups:
         xs_sorted = sorted(xs)
         top_shape, bottom_shape = _make_shapes(len(xs_sorted))
         start_top = top_row_offset + (y - min_y) + 2 * xs_sorted[0]
         start_bottom = bottom_row_offset + (y - min_y) + max(0, 2 * xs_sorted[0] - 1)
         placements.append((start_top, top_shape, start_bottom, bottom_shape))
-        art_width = max(
-            art_width,
-            start_top + len(top_shape),
-            start_bottom + len(bottom_shape),
-        )
 
-    line2_chars = ["_"] * art_width
-    line3_chars = ["_"] * art_width
-    for i in range(top_row_offset):
-        line2_chars[i] = " "
-    for i in range(bottom_row_offset):
-        line3_chars[i] = " "
-
-    for start_top, top_shape, start_bottom, bottom_shape in placements:
-        _place_shape(line2_chars, start_top, top_shape)
-        _place_shape(line3_chars, start_bottom, bottom_shape)
+    art_width = _calculate_art_width(width, height, placements)
+    line2_chars, line3_chars = _initialize_lines(
+        art_width, top_row_offset, bottom_row_offset
+    )
+    _place_all_shapes(line2_chars, line3_chars, placements)
 
     return "".join(line2_chars), "".join(line3_chars), art_width
 

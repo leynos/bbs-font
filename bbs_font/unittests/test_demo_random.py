@@ -5,7 +5,7 @@ from bbs_font.random_bitmap import random_bitmap
 
 
 def test_random_bitmap_validity() -> None:
-    for _ in range(10):
+    for _ in range(100):
         bitmap = random_bitmap(6, 4)
         ones = sum(row.count("1") for row in bitmap)
         assert ones in (1, 2)
