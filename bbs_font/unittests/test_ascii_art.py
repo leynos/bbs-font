@@ -18,6 +18,7 @@ DATA_DIR = Path(__file__).parent / "data"
         ("example1_input.txt", "example1_output.txt"),
         ("example2_input.txt", "example2_output.txt"),
         ("example3_input.txt", "example3_output.txt"),
+        ("example4_input.txt", "example4_output.txt"),
     ],
 )
 def test_examples(input_file: str, expected_file: str) -> None:
@@ -73,9 +74,8 @@ def random_bitmap(draw: st.DrawFn) -> list[str]:
         for r, c in positions:
             if (r, c) == first:
                 continue
-            vertically_adjacent = abs(r - first[0]) == 1 and c == first[1]
             diagonally_adjacent = abs(r - first[0]) == 1 and abs(c - first[1]) == 1
-            if vertically_adjacent or diagonally_adjacent:
+            if diagonally_adjacent:
                 continue
             possible.append((r, c))
         if possible:
@@ -107,6 +107,10 @@ def test_empty_row() -> None:
         parse_and_validate_bitmap([""])
 
 
-def test_vertical_adjacency_error() -> None:
-    with pytest.raises(ValueError):
-        parse_and_validate_bitmap(["10", "10"])
+def test_vertical_adjacency() -> None:
+    bitmap = [
+        "10",
+        "10",
+    ]
+    art = bitmap_to_ascii(bitmap)
+    validate_ascii(art, bitmap)
