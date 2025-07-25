@@ -6,7 +6,11 @@ import pytest
 from hypothesis import given
 from hypothesis import strategies as st
 
-from bbs_font.ascii_art import bitmap_to_ascii, validate_ascii
+from bbs_font.ascii_art import (
+    AsciiArtValidationError,
+    bitmap_to_ascii,
+    validate_ascii,
+)
 from bbs_font.parser import parse_and_validate_bitmap
 
 DATA_DIR = Path(__file__).parent / "data"
@@ -114,3 +118,25 @@ def test_vertical_adjacency() -> None:
     ]
     art = bitmap_to_ascii(bitmap)
     validate_ascii(art, bitmap)
+
+
+def test_bottom_line_slash_validation() -> None:
+    """Ensure slash counts include the bottom line."""
+
+    bitmap = [
+        "0000",
+        "0100",
+        "0100",
+    ]
+    art = bitmap_to_ascii(bitmap)
+
+    lines = art.splitlines()
+    bottom = list(lines[-1])
+    for i, ch in enumerate(bottom):
+        if ch in {"/", "\\"}:
+            bottom[i] = "_"
+            break
+    bad_art = "\n".join(lines[:-1] + ["".join(bottom)])
+
+    with pytest.raises(AsciiArtValidationError):
+        validate_ascii(bad_art, bitmap)

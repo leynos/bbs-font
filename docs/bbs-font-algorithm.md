@@ -3,8 +3,9 @@
 A bitmap encodes one or two raised blocks. The renderer converts the grid into
 a pseudo-3D view formed by four text rows. The first and last rows are the
 floor and ceiling. Blocks are drawn across the middle two rows. A row of
-underscores represents the floor of the grid. For a block at position `(x, y)`
-(row `y`, column `x`):
+underscores represents the floor of the grid. Each bitmap column expands to two
+character columns in the output to simulate perspective. For a block at
+position `(x, y)` (row `y`, column `x`):
 
 1. The output width is at least `2 * cols + rows`. If a block sits near the
    boundary, the width expands so the second and third lines show the full
@@ -19,10 +20,11 @@ underscores represents the floor of the grid. For a block at position `(x, y)`
    blocks touch horizontally, edges merge into a single shape. The number of
    slashes grows by two for each additional touching block:
 
-   - The rising edge uses `"/"` followed by `2 * n + 1` backslashes where
-     `n` is the number of horizontally touching blocks in that group.
-   - The falling edge uses a backslash followed by `2 * n + 1` forward
-     slashes.
+    - The rising edge uses `"/"` followed by `2 * n + 1` backslashes where
+      `n` is the number of horizontally touching blocks in that group. A
+      solitary block therefore has a run of three backslashes.
+    - The falling edge uses a backslash followed by `2 * n + 1` forward
+      slashes.
 
 3. Underscores fill the remaining space so that every line has the same width.
 

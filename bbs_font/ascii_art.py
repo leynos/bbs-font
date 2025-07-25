@@ -11,7 +11,13 @@ if typing.TYPE_CHECKING:  # pragma: no cover - used only for type hints
     import collections.abc as cabc
 
 
-SLASH_RUN = 3
+# Geometry constants
+# number of character steps per bitmap column in the pseudo perspective
+COLUMN_STEP = 2
+# length of the slash or backslash run representing one block edge
+SINGLE_SLASH_RUN = 3
+# width of one block including its trailing underscore
+SINGLE_BLOCK_WIDTH = SINGLE_SLASH_RUN + 1
 
 
 @dc.dataclass(slots=True)
@@ -56,8 +62,10 @@ def _compute_placements(
     for y, xs in groups:
         xs_sorted = sorted(xs)
         top_shape, bottom_shape = _make_shapes(len(xs_sorted))
-        start_top = top_row_offset + (y - min_y) + 2 * xs_sorted[0]
-        start_bottom = bottom_row_offset + (y - min_y) + max(0, 2 * xs_sorted[0] - 1)
+        start_top = top_row_offset + (y - min_y) + COLUMN_STEP * xs_sorted[0]
+        start_bottom = (
+            bottom_row_offset + (y - min_y) + max(0, COLUMN_STEP * xs_sorted[0] - 1)
+        )
         placements.append(_Placement(start_top, top_shape, start_bottom, bottom_shape))
     return placements
 
@@ -73,32 +81,6 @@ def _calc_art_width(width: int, height: int, placements: list[_Placement]) -> in
             pl.bottom_start + len(pl.bottom_shape),
         )
     return art_width
-
-
-def _init_lines(
-    height: int, art_width: int, top_offset: int, bottom_offset: int
-) -> tuple[list[str], list[str], list[str]]:
-    """Return initialized output lines."""
-
-    line2 = ["_"] * art_width
-    line3 = ["_"] * art_width
-    bottom_line = list(" " * height + "_" * (art_width - height))
-
-    for i in range(top_offset):
-        line2[i] = " "
-    for i in range(bottom_offset):
-        line3[i] = " "
-    return line2, line3, bottom_line
-
-
-def _render_placements(
-    line2: list[str], line3: list[str], placements: list[_Placement]
-) -> None:
-    """Render all placements onto ``line2`` and ``line3``."""
-
-    for pl in placements:
-        _place_shape(line2, pl.top_shape, pl.top_start)
-        _place_shape(line3, pl.bottom_shape, pl.bottom_start)
 
 
 def _vertical_stack_info(
@@ -129,17 +111,17 @@ def _apply_vertical_stack(
 ) -> None:
     """Adjust lines for vertically stacked blocks."""
 
-    _place_shape(line2, "/" + "\\" * 3, offset)
-    if offset + 4 < len(line2):
-        line2[offset + 4] = "_"
+    _place_shape(line2, "/" + "\\" * SINGLE_SLASH_RUN, offset)
+    if offset + SINGLE_BLOCK_WIDTH < len(line2):
+        line2[offset + SINGLE_BLOCK_WIDTH] = "_"
 
     line3[offset] = "\\"
     line3[offset + 1] = " "
-    for i in range(3):
+    for i in range(SINGLE_SLASH_RUN):
         line3[offset + 2 + i] = "\\"
 
     if bottom_y == height - 1:
-        for i, ch in enumerate("\\" + "/" * 3):
+        for i, ch in enumerate("\\" + "/" * SINGLE_SLASH_RUN):
             idx = offset + 1 + i
             if idx < len(bottom_line):
                 bottom_line[idx] = ch
@@ -157,15 +139,24 @@ def _assemble_lines(
     bottom_offset = min_y + 1
     placements = _compute_placements(groups, min_y, top_offset, bottom_offset)
     art_width = _calc_art_width(width, height, placements)
-    line2, line3, bottom_line = _init_lines(
-        height, art_width, top_offset, bottom_offset
-    )
-    _render_placements(line2, line3, placements)
+
+    line2 = ["_"] * art_width
+    line3 = ["_"] * art_width
+    bottom_line = list(" " * height + "_" * (art_width - height))
+
+    for i in range(top_offset):
+        line2[i] = " "
+    for i in range(bottom_offset):
+        line3[i] = " "
+
+    for pl in placements:
+        _place_shape(line2, pl.top_shape, pl.top_start)
+        _place_shape(line3, pl.bottom_shape, pl.bottom_start)
 
     stack_info = _vertical_stack_info(groups)
     if stack_info:
         top_y, bottom_y, x = stack_info
-        offset = top_offset + (top_y - min_y) + 2 * x
+        offset = top_offset + (top_y - min_y) + COLUMN_STEP * x
         _apply_vertical_stack(line2, line3, bottom_line, height, offset, bottom_y)
 
     return "".join(line2), "".join(line3), "".join(bottom_line), art_width
