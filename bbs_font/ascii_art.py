@@ -18,12 +18,19 @@ def _make_shapes(count: int) -> tuple[str, str]:
 
     Examples
     --------
-    ``count=1`` yields ``("/\\\\\\", "\\/////")``.
-    ``count=2`` yields ``("/\\\\\\\\\\", "\\///////")``.
+    ``count=1`` yields ``("/\\", "\\///")``.
+    ``count=2`` yields ``("/\\\\", "\\//////")``.
     """
 
     run = 2 * count + 1
     return "/" + "\\" * run, "\\" + "/" * run
+
+
+def _place_shape(dest: list[str], shape: str, offset: int) -> None:
+    """Place ``shape`` characters into ``dest`` starting at ``offset``."""
+
+    for i, ch in enumerate(shape):
+        dest[offset + i] = ch
 
 
 def _assemble_lines(
@@ -39,10 +46,10 @@ def _assemble_lines(
     bottom_row_offset = min_y + 1
 
     for y, xs in groups:
-        xs = sorted(xs)
-        top_shape, bottom_shape = _make_shapes(len(xs))
-        start_top = top_row_offset + (y - min_y) + 2 * xs[0]
-        start_bottom = bottom_row_offset + (y - min_y) + max(0, 2 * xs[0] - 1)
+        xs_sorted = sorted(xs)
+        top_shape, bottom_shape = _make_shapes(len(xs_sorted))
+        start_top = top_row_offset + (y - min_y) + 2 * xs_sorted[0]
+        start_bottom = bottom_row_offset + (y - min_y) + max(0, 2 * xs_sorted[0] - 1)
         placements.append((start_top, top_shape, start_bottom, bottom_shape))
 
     art_width = 2 * width + height
@@ -56,10 +63,8 @@ def _assemble_lines(
     for i in range(bottom_row_offset):
         line3[i] = " "
     for st, top, sb, bottom in placements:
-        for i, ch in enumerate(top):
-            line2[st + i] = ch
-        for i, ch in enumerate(bottom):
-            line3[sb + i] = ch
+        _place_shape(line2, top, st)
+        _place_shape(line3, bottom, sb)
 
     return "".join(line2), "".join(line3), art_width
 
