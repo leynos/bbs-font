@@ -50,6 +50,7 @@ select = [
     "FURB",
     "B",
     "RUF",
+    "C90",
 ]
 per-file-ignores = {"**/test_*.py" = ["S101"]}
 

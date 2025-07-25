@@ -1,22 +1,84 @@
-"""Utilities to render a single raised block from bitmap coordinates."""
+"""Render pseudo-3D ASCII blocks from a bitmap."""
 
 from __future__ import annotations
 
 import typing
 
+from .parser import build_groups, parse_and_validate_bitmap
+
 if typing.TYPE_CHECKING:  # pragma: no cover - used only for type hints
     import collections.abc as cabc
 
-# Number of consecutive slashes forming each edge of the block.
+
 SLASH_RUN = 3
 
-# Shapes used when rendering the block.
-TOP_SHAPE = "/" + "\\" * SLASH_RUN
-BOTTOM_SHAPE = "\\" + "/" * SLASH_RUN
 
-# Expected slash counts derived from the shapes above.
-EXPECTED_SLASH_COUNT = TOP_SHAPE.count("/") + BOTTOM_SHAPE.count("/")
-EXPECTED_BACKSLASH_COUNT = TOP_SHAPE.count("\\") + BOTTOM_SHAPE.count("\\")
+def _make_shapes(count: int) -> tuple[str, str]:
+    """Return the rising and falling edge shapes for ``count`` blocks.
+
+    Examples
+    --------
+    ``count=1`` yields ``("/\\", "\\///")``.
+    ``count=2`` yields ``("/\\\\", "\\//////")``.
+    """
+
+    run = 2 * count + 1
+    return "/" + "\\" * run, "\\" + "/" * run
+
+
+def _place_shape(dest: list[str], shape: str, offset: int) -> None:
+    """Place ``shape`` characters into ``dest`` starting at ``offset``."""
+
+    for i, ch in enumerate(shape):
+        dest[offset + i] = ch
+
+
+def _assemble_lines(
+    width: int,
+    height: int,
+    groups: list[tuple[int, list[int]]],
+    min_y: int,
+) -> tuple[str, str, int]:
+    """Return line2, line3 and total width for the ASCII art."""
+
+    placements: list[tuple[int, str, int, str]] = []
+    top_row_offset = min_y
+    bottom_row_offset = min_y + 1
+
+    for y, xs in groups:
+        xs_sorted = sorted(xs)
+        top_shape, bottom_shape = _make_shapes(len(xs_sorted))
+        start_top = top_row_offset + (y - min_y) + 2 * xs_sorted[0]
+        start_bottom = bottom_row_offset + (y - min_y) + max(0, 2 * xs_sorted[0] - 1)
+        placements.append((start_top, top_shape, start_bottom, bottom_shape))
+
+    art_width = 2 * width + height
+    for st, top, sb, bottom in placements:
+        art_width = max(art_width, st + len(top), sb + len(bottom))
+
+    line2 = ["_"] * art_width
+    line3 = ["_"] * art_width
+    for i in range(top_row_offset):
+        line2[i] = " "
+    for i in range(bottom_row_offset):
+        line3[i] = " "
+    for st, top, sb, bottom in placements:
+        _place_shape(line2, top, st)
+        _place_shape(line3, bottom, sb)
+
+    return "".join(line2), "".join(line3), art_width
+
+
+def _longest_run(text: str, ch: str) -> int:
+    run = curr = 0
+    for c in text:
+        if c == ch:
+            curr += 1
+            if curr > run:
+                run = curr
+        else:
+            curr = 0
+    return run
 
 
 class AsciiArtValidationError(Exception):
@@ -24,55 +86,13 @@ class AsciiArtValidationError(Exception):
 
 
 def bitmap_to_ascii(bitmap: cabc.Iterable[str]) -> str:
-    """Return a pseudo-3D representation of ``bitmap``.
+    """Return a pseudo-3D representation of ``bitmap``."""
 
-    The bitmap must contain exactly one ``"1"``. Each row must be the same
-    length. The output consists of ``height + 1`` lines. The top and bottom
-    edges are a run of underscores. The raised block is drawn across the two
-    rows that border its ``1``.
-    """
+    width, height, coords = parse_and_validate_bitmap(bitmap)
+    groups, min_y = build_groups(coords)
+    line2, line3, art_width = _assemble_lines(width, height, groups, min_y)
 
-    rows = list(bitmap)
-    if not rows:
-        raise ValueError("bitmap cannot be empty")
-
-    width = len(rows[0])
-    height = len(rows)
-    for row in rows:
-        if len(row) != width:
-            raise ValueError("bitmap rows must have equal width")
-
-    coords: list[tuple[int, int]] = []
-    for r, row in enumerate(rows):
-        count = row.count("1")
-        if count > 1:
-            raise ValueError(f"bitmap row {r} contains multiple '1's")
-        if count == 1:
-            coords.append((r, row.index("1")))
-
-    if len(coords) != 1:
-        raise ValueError(f"bitmap must contain exactly one '1', found {len(coords)}")
-    y, x = coords[0]
-
-    base_width = 2 * width + height
-    art_width = max(
-        base_width,
-        y + 2 * x + len(TOP_SHAPE),
-        (y + 1) + max(0, 2 * x - 1) + len(BOTTOM_SHAPE),
-    )
     top_line = "_" * (2 * width)
-    top_shape = TOP_SHAPE
-    bottom_shape = BOTTOM_SHAPE
-
-    post2 = art_width - y - 2 * x - len(top_shape)
-    line2 = f"{' ' * y}{'_' * (2 * x)}{top_shape}{'_' * max(0, post2)}"
-    line2 = line2[:art_width].ljust(art_width, "_")
-
-    pre3 = max(0, 2 * x - 1)
-    post3 = art_width - (y + 1) - pre3 - len(bottom_shape)
-    line3 = f"{' ' * (y + 1)}{'_' * pre3}{bottom_shape}{'_' * max(0, post3)}"
-    line3 = line3[:art_width].ljust(art_width, "_")
-
     bottom_line = " " * height + "_" * (art_width - height)
     return "\n".join([top_line, line2, line3, bottom_line])
 
@@ -80,35 +100,12 @@ def bitmap_to_ascii(bitmap: cabc.Iterable[str]) -> str:
 def validate_ascii(art: str, bitmap: cabc.Iterable[str]) -> None:
     """Validate ``art`` conforms to expected block layout."""
 
-    rows = list(bitmap)
-    if not rows:
-        raise AsciiArtValidationError("bitmap cannot be empty")
-    width = len(rows[0])
-    height = len(rows)
-    for row in rows:
-        if len(row) != width:
-            raise AsciiArtValidationError("bitmap rows must have equal width")
+    width, height, coords = parse_and_validate_bitmap(bitmap, AsciiArtValidationError)
+    groups, min_y = build_groups(coords)
+    line2, line3, expected_width = _assemble_lines(width, height, groups, min_y)
 
-    coords: list[tuple[int, int]] = []
-    for r, row in enumerate(rows):
-        count = row.count("1")
-        if count > 1:
-            raise AsciiArtValidationError(f"bitmap row {r} contains multiple '1's")
-        if count == 1:
-            coords.append((r, row.index("1")))
-
-    if len(coords) != 1:
-        raise AsciiArtValidationError(
-            f"bitmap must contain exactly one '1', found {len(coords)}"
-        )
-    y, x = coords[0]
-
-    base_width = 2 * width + height
-    expected_width = max(
-        base_width,
-        y + 2 * x + len(TOP_SHAPE),
-        (y + 1) + max(0, 2 * x - 1) + len(BOTTOM_SHAPE),
-    )
+    expected_slash_count = line2.count("/") + line3.count("/")
+    expected_backslash_count = line2.count("\\") + line3.count("\\")
 
     lines = art.splitlines()
     if len(lines) != 4:
@@ -131,21 +128,10 @@ def validate_ascii(art: str, bitmap: cabc.Iterable[str]) -> None:
     slash_count = art.count("/")
     backslash_count = art.count("\\")
     if (
-        slash_count != EXPECTED_SLASH_COUNT
-        or backslash_count != EXPECTED_BACKSLASH_COUNT
+        slash_count != expected_slash_count
+        or backslash_count != expected_backslash_count
     ):
         raise AsciiArtValidationError("wrong number of slashes")
 
-    def longest_run(ch: str) -> int:
-        max_run = curr = 0
-        for c in art:
-            if c == ch:
-                curr += 1
-                if curr > max_run:
-                    max_run = curr
-            else:
-                curr = 0
-        return max_run
-
-    if longest_run("_") < 2 * width:
+    if _longest_run(art, "_") < 2 * width:
         raise AsciiArtValidationError("underscores too short")
