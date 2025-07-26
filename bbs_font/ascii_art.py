@@ -18,8 +18,8 @@ def _make_shapes(count: int) -> tuple[str, str]:
 
     Examples
     --------
-    ``count=1`` yields ``("/\\", "\\///")``.
-    ``count=2`` yields ``("/\\\\", "\\//////")``.
+    ``count=1`` yields ``("/\\\\\\", "\\///")``.
+    ``count=2`` yields ``("/\\\\\\\\\\", "\\/////")``.
     """
 
     run = 2 * count + 1
