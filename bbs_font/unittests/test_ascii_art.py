@@ -136,7 +136,7 @@ def test_bottom_line_slash_validation() -> None:
         if ch in {"/", "\\"}:
             bottom[i] = "_"
             break
-    bad_art = "\n".join(lines[:-1] + ["".join(bottom)])
+    bad_art = "\n".join([*lines[:-1], "".join(bottom)])
 
     with pytest.raises(AsciiArtValidationError):
         validate_ascii(bad_art, bitmap)
