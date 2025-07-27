@@ -153,8 +153,7 @@ def _assemble_lines(
         _place_shape(line2, pl.top_shape, pl.top_start)
         _place_shape(line3, pl.bottom_shape, pl.bottom_start)
 
-    stack_info = _vertical_stack_info(groups)
-    if stack_info:
+    if stack_info := _vertical_stack_info(groups):
         top_y, bottom_y, x = stack_info
         offset = top_offset + (top_y - min_y) + COLUMN_STEP * x
         _apply_vertical_stack(line2, line3, bottom_line, height, offset, bottom_y)
