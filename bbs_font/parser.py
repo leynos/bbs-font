@@ -58,21 +58,14 @@ def parse_bitmap(
 
 
 def validate_pixel_adjacency(coords: list[tuple[int, int]]) -> None:
-    """Ensure two pixels, if present, only touch horizontally."""
+    """Ensure two pixels are not diagonally adjacent."""
 
     if len(coords) != 2:
         return
     (y0, x0), (y1, x1) = coords
-    vertically_adjacent = abs(y0 - y1) == 1 and x0 == x1
     diagonally_adjacent = abs(y0 - y1) == 1 and abs(x0 - x1) == 1
-    if vertically_adjacent or diagonally_adjacent:
-        msg = f"pixels may only touch horizontally: {(y0, x0)} and {(y1, x1)}"
-        raise ValueError(msg)
-
-    horizontally_adjacent = y0 == y1 and abs(x0 - x1) == 1
-    not_touching = abs(y0 - y1) > 1 or abs(x0 - x1) > 1
-    if not (horizontally_adjacent or not_touching):
-        msg = f"pixels may only touch horizontally: {(y0, x0)} and {(y1, x1)}"
+    if diagonally_adjacent:
+        msg = f"pixels may not touch diagonally: {(y0, x0)} and {(y1, x1)}"
         raise ValueError(msg)
 
 
@@ -80,7 +73,7 @@ def parse_and_validate_bitmap(
     bitmap: cabc.Iterable[str],
     exc: type[Exception] = ValueError,
 ) -> tuple[int, int, list[tuple[int, int]]]:
-    """Parse ``bitmap`` and ensure any pixels only touch horizontally.
+    """Parse ``bitmap`` and ensure pixels are not diagonally adjacent.
 
     Parameters
     ----------
@@ -97,8 +90,7 @@ def parse_and_validate_bitmap(
     Raises
     ------
     exc
-        If the bitmap fails basic validation or pixels touch vertically or
-        diagonally.
+        If the bitmap fails basic validation or pixels touch diagonally.
     """
 
     width, height, coords = parse_bitmap(bitmap, exc)
