@@ -184,7 +184,7 @@ def bitmap_to_ascii(bitmap: cabc.Iterable[str]) -> str:
 
     width, height, coords = parse_and_validate_bitmap(bitmap)
     groups, min_y = build_groups(coords)
-    line2, line3, bottom_line, art_width = _assemble_lines(width, height, groups, min_y)
+    line2, line3, bottom_line, _ = _assemble_lines(width, height, groups, min_y)
 
     top_line = "_" * (2 * width)
     return "\n".join([top_line, line2, line3, bottom_line])
