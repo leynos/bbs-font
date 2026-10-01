@@ -20,7 +20,7 @@ MDTABLEFIX_RULES = --wrap --renumber --breaks --ellipsis --fences
 all: build check-fmt test typecheck
 
 build: uv ## Build virtual-env and install deps
-	uv venv
+	uv venv --clear
 	uv sync --group dev
 
 build-release: ## Build artefacts (sdist & wheel)
