@@ -3,4 +3,4 @@ interpreter = "3.13"
 
 # What the ratchet baseline measures: the package, not its tests.
 [selection]
-python-source = "./bbs_font/__init__.py,./bbs_font/ascii_art.py,./bbs_font/demo.py,./bbs_font/parser.py,./bbs_font/pure.py,./bbs_font/random_bitmap.py"
+python-source = "./bbs_font"

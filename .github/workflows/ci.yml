@@ -65,7 +65,7 @@ jobs:
           UV_PYTHON: '3.13'
         uses: leynos/shared-actions/.github/actions/generate-coverage@5a99aed78ce68dcebd3052b75c31e6f173162b1e
         with:
-          python-source: ./bbs_font/__init__.py,./bbs_font/ascii_art.py,./bbs_font/demo.py,./bbs_font/parser.py,./bbs_font/pure.py,./bbs_font/random_bitmap.py
+          python-source: ./bbs_font
           output-path: coverage.xml
           format: cobertura
           artefact-name-suffix: bbs-font

@@ -26,11 +26,12 @@ The `generate-coverage` selection in both workflows must match field for field
 (`python-source`, format and interpreter), and `.github/cv005.toml` repeats the
 `python-source`.
 
-The package keeps its unit tests inside `bbs_font/unittests`, and the shared
-action cannot omit a path from `--source`. The selection therefore names each
-module of the package rather than the directory, so the tests are not counted
-as covered code. Add a new module to the `python-source` list in `ci.yml`,
-`coverage-main.yml` and `.github/cv005.toml` together.
+The package keeps its unit tests inside `bbs_font/unittests`. The shared action
+passes `python-source` to Slipcover as `--source`, which takes directories (a
+file path fails the run) and has no way to omit a path, so the tests count as
+measured code. The ratchet compares the same measurement from run to run, so
+the figure is consistent even though it reads slightly higher than a
+package-only measurement.
 
 ### The CV-005 contract check
 
