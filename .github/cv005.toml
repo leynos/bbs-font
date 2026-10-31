@@ -1,0 +1,5 @@
+repository = "leynos/bbs-font"
+
+# What the ratchet baseline measures: the package, not its tests.
+[selection]
+python-source = "./bbs_font"
