@@ -8,8 +8,8 @@ Main owns CodeScene (CV-005). Nothing a pull request can start talks to
 CodeScene or holds its credential.
 
 - **Pull requests** (`.github/workflows/ci.yml`) run the tests, then measure
-  coverage and ratchet it with the shared `generate-coverage` action over
-  `./bbs_font`. The report is not uploaded anywhere.
+  coverage and ratchet it with the shared `generate-coverage` action over the
+  package's modules. The report is not uploaded anywhere.
 - **Main** (`.github/workflows/coverage-main.yml`) is the one publisher. It
   runs on each push to `main` (and on manual dispatch), in the `codescene`
   environment whose deployment policy admits `main` alone. It generates the
@@ -25,6 +25,12 @@ CodeScene or holds its credential.
 The `generate-coverage` selection in both workflows must match field for field
 (`python-source`, format and interpreter), and `.github/cv005.toml` repeats the
 `python-source`.
+
+The package keeps its unit tests inside `bbs_font/unittests`, and the shared
+action cannot omit a path from `--source`. The selection therefore names each
+module of the package rather than the directory, so the tests are not counted
+as covered code. Add a new module to the `python-source` list in `ci.yml`,
+`coverage-main.yml` and `.github/cv005.toml` together.
 
 ### The CV-005 contract check
 
