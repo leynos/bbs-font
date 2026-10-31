@@ -1,6 +1,9 @@
 repository = "leynos/bbs-font"
 interpreter = "3.13"
 
-# What the ratchet baseline measures: the package, not its tests.
+# What the ratchet baseline measures: the package directory. Its unit tests live
+# in bbs_font/unittests and count as measured code, because Slipcover's --source
+# takes directories and the shared action has no omit input (see the developers'
+# guide).
 [selection]
 python-source = "./bbs_font"
