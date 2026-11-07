@@ -1,3 +1,5 @@
+"""Generate random bitmaps of one or two non-diagonal pixels for the demo."""
+
 from __future__ import annotations
 
 import random

@@ -1,3 +1,5 @@
+"""Parse and validate the textual bitmaps that the ASCII-art renderer consumes."""
+
 from __future__ import annotations
 
 import typing
