@@ -1,3 +1,5 @@
+"""Tests for the demo's random bitmap generator."""
+
 from __future__ import annotations
 
 from bbs_font.ascii_art import bitmap_to_ascii, validate_ascii
@@ -5,6 +7,7 @@ from bbs_font.random_bitmap import random_bitmap
 
 
 def test_random_bitmap_validity() -> None:
+    """Generated bitmaps hold one or two pixels, never diagonally adjacent."""
     for _ in range(100):
         bitmap = random_bitmap(6, 4)
         ones = sum(row.count("1") for row in bitmap)

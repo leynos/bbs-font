@@ -1,3 +1,5 @@
+"""Tests for rendering bitmaps to ASCII art and validating the result."""
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -26,6 +28,7 @@ DATA_DIR = Path(__file__).parent / "data"
     ],
 )
 def test_examples(input_file: str, expected_file: str) -> None:
+    """Render each example bitmap to its expected art, which must validate."""
     bitmap = (DATA_DIR / input_file).read_text().splitlines()
     expected = (DATA_DIR / expected_file).read_text().rstrip("\n")
     art = bitmap_to_ascii(bitmap)
@@ -42,11 +45,13 @@ def test_examples(input_file: str, expected_file: str) -> None:
     ],
 )
 def test_edge_cases(bitmap: list[str]) -> None:
+    """Render small edge-case bitmaps to art that validates against them."""
     art = bitmap_to_ascii(bitmap)
     validate_ascii(art, bitmap)
 
 
 def test_two_horizontally_adjacent_blocks() -> None:
+    """Render two blocks side by side to art that validates."""
     bitmap = [
         "110",
         "000",
@@ -56,6 +61,7 @@ def test_two_horizontally_adjacent_blocks() -> None:
 
 
 def test_two_non_adjacent_blocks() -> None:
+    """Render two blocks that do not touch to art that validates."""
     bitmap = [
         "100",
         "001",
@@ -66,6 +72,7 @@ def test_two_non_adjacent_blocks() -> None:
 
 @st.composite
 def random_bitmap(draw: st.DrawFn) -> list[str]:
+    """Draw a small grid holding one block, or two that are not diagonal neighbours."""
     height = draw(st.integers(min_value=2, max_value=6))
     width = draw(st.integers(min_value=1, max_value=6))
 
@@ -97,21 +104,25 @@ def random_bitmap(draw: st.DrawFn) -> list[str]:
 
 @given(random_bitmap())
 def test_random_bitmaps(bitmap: list[str]) -> None:
+    """Render any drawn bitmap to art that validates against it."""
     art = bitmap_to_ascii(bitmap)
     validate_ascii(art, bitmap)
 
 
 def test_invalid_characters() -> None:
+    """Reject a row holding a character other than ``0`` and ``1``."""
     with pytest.raises(ValueError):
         parse_and_validate_bitmap(["10A"])
 
 
 def test_empty_row() -> None:
+    """Reject a bitmap that contains an empty row."""
     with pytest.raises(ValueError):
         parse_and_validate_bitmap([""])
 
 
 def test_vertical_adjacency() -> None:
+    """Render two vertically stacked blocks to art that validates."""
     bitmap = [
         "10",
         "10",

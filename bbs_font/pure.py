@@ -1,3 +1,5 @@
+"""Pure-Python fallback for the optional Rust extension."""
+
 from __future__ import annotations
 
 
