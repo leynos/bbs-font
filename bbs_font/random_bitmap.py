@@ -1,4 +1,4 @@
-"""Generate random bitmaps of one or two non-diagonal pixels for the demo."""
+"""Generate random bitmaps of one or two pixels, never diagonally adjacent."""
 
 from __future__ import annotations
 
@@ -31,8 +31,8 @@ def random_bitmap(width: int, height: int, two_pixel_prob: float = 0.5) -> list[
 
     The returned grid is ``height`` lines by ``width`` characters. Exactly one
     or two ``"1"`` characters are present. If two pixels are active they may be
-    horizontally adjacent or separated but are never vertically or diagonally
-    adjacent.
+    horizontally or vertically adjacent, or separated, but are never diagonally
+    adjacent. A 1x1 grid has room for only one pixel.
 
     Args:
         width: Width of the bitmap. Must be positive.

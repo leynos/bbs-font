@@ -7,7 +7,7 @@ from bbs_font.random_bitmap import random_bitmap
 
 
 def test_random_bitmap_validity() -> None:
-    """Generated bitmaps hold one or two non-diagonal blocks and render validly."""
+    """Generated bitmaps hold one or two pixels, not diagonal, and render validly."""
     for _ in range(100):
         bitmap = random_bitmap(6, 4)
         ones = sum(row.count("1") for row in bitmap)

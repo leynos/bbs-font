@@ -45,7 +45,7 @@ def test_examples(input_file: str, expected_file: str) -> None:
     ],
 )
 def test_edge_cases(bitmap: list[str]) -> None:
-    """Render the smallest bitmaps to art that validates against them."""
+    """Render small edge-case bitmaps to art that validates against them."""
     art = bitmap_to_ascii(bitmap)
     validate_ascii(art, bitmap)
 
